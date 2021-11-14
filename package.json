@@ -1,6 +1,6 @@
 {
   "name": "@stefanprobst/remark-mdx-page",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "main": "src/index.js",
   "type": "module",
   "types": "src/index.d.ts",
@@ -27,8 +27,7 @@
     "yarn": "1.x"
   },
   "dependencies": {
-    "acorn": "^8.5.0",
-    "acorn-jsx": "^5.3.2"
+    "@typescript-eslint/typescript-estree": "^5.3.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^14.1.0",

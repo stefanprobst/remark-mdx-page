@@ -48,7 +48,7 @@ function compiler(entry, pathname) {
 
 it('adds page template', async () => {
   const entry = path.join(process.cwd(), 'test', '__fixtures__', 'test.mdx')
-  const pathname = path.join(process.cwd(), 'test', '__fixtures__', 'page.js')
+  const pathname = path.join(process.cwd(), 'test', '__fixtures__', 'page.tsx')
   const stats = await compiler(entry, pathname)
 
   expect(stats.compilation.modules[0]._source._value).toMatchInlineSnapshot(`

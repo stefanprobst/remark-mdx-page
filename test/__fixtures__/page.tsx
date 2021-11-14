@@ -1,4 +1,4 @@
-export default function Layout(props) {
+export default function Layout(props): JSX.Element {
   return <main>{props.children}</main>
 }
 
