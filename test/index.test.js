@@ -55,14 +55,13 @@ it('adds page template', async () => {
     "/*@jsxRuntime automatic @jsxImportSource react*/
     import {Fragment as _Fragment, jsx as _jsx, jsxs as _jsxs} from \\"react/jsx-runtime\\";
     const MDXLayout = function Page(props) {
-      return _jsx(\\"main\\", {
-        children: props.children
-      });
+      return React.createElement(\\"main\\", null, props.children);
     };
+    ;
     export async function getStaticProps() {
       return {
         props: {
-          hello: \\"world\\"
+          hello: 'world'
         }
       };
     }

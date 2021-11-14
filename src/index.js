@@ -1,23 +1,29 @@
-import { readFileSync } from 'fs'
-
+import { transformFileSync } from '@swc/core'
 import { Parser } from 'acorn'
 import jsx from 'acorn-jsx'
-import { transformSync } from 'esbuild'
 
 const parser = Parser.extend(jsx())
 
 export default function attacher(options) {
   if (options.pathname == null) return undefined
 
-  const fileContent = readFileSync(options.pathname, { encoding: 'utf-8' })
-
-  const { code } = transformSync(fileContent, {
-    sourcefile: options.pathname,
-    jsx: 'preserve',
-    minify: false,
-    sourcemap: false,
-    treeShaking: false,
-    loader: 'tsx',
+  const { code } = transformFileSync(options.pathname, {
+    sourceMaps: false,
+    jsc: {
+      parser: {
+        syntax: 'typescript',
+        tsx: true,
+        dynamicImport: false,
+      },
+      target: 'es2022',
+      transform: {
+        react: {
+          // runtime: 'automatic',
+          development: false,
+          useBuiltins: true,
+        },
+      },
+    },
   })
 
   const estree = parser.parse(code, {
