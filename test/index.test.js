@@ -62,7 +62,7 @@ it('adds page template', async () => {
     export async function getStaticProps() {
       return {
         props: {
-          hello: 'world'
+          hello: \\"world\\"
         }
       };
     }
