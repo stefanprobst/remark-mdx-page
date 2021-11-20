@@ -30,8 +30,22 @@ export default function attacher(options) {
   if (templateComponentNode == null) {
     throw new Error('Page template does not have a default export.')
   }
-  const templateComponentName =
+  let templateComponentName =
     templateComponentNode.declaration.name || templateComponentNode.declaration.id.name
+
+  for (const [index, node] of estree.body.entries()) {
+    if (node.type !== 'VariableDeclaration') continue
+    const declIndex = node.declarations.findIndex((d) => d.init.name === templateComponentName)
+    if (declIndex !== -1) {
+      templateComponentName = node.declarations[declIndex].id.name
+      if (node.declarations.length > 1) {
+        node.declarations.splice(declIndex)
+      } else {
+        estree.body.splice(index, 1)
+      }
+      break
+    }
+  }
 
   const staticProperties = estree.body.filter((node) => {
     if (node.type !== 'ExpressionStatement') return false

@@ -38,7 +38,9 @@ function compiler(entry, pathname) {
         reject(err)
       }
       if (stats.hasErrors()) {
-        reject(new Error(stats.toJson().errors))
+        const errors = stats.toJson().errors
+        console.error(errors)
+        reject(new Error(errors))
       }
 
       resolve(stats)
@@ -54,7 +56,7 @@ it('adds page template', async () => {
   expect(stats.compilation.modules[0]._source._value).toMatchInlineSnapshot(`
     "/*@jsxRuntime automatic @jsxImportSource react*/
     import {Fragment as _Fragment, jsx as _jsx, jsxs as _jsxs} from \\"react/jsx-runtime\\";
-    const MDXLayout = function Page(props) {
+    const MDXLayout = function TestPage(props) {
       return _jsx(\\"main\\", {
         children: props.children
       });

@@ -1,16 +1,18 @@
 import type { ReactNode } from 'react'
 
-interface PageProps {
+interface TestPageProps {
   children?: ReactNode
 }
 
-export default function Page(props: PageProps): JSX.Element {
+export default function TestPage(props: TestPageProps): JSX.Element {
   return <main>{props.children}</main>
 }
 
 export async function getStaticProps() {
   return { props: { hello: 'world' } }
 }
+
+const Page = TestPage as any
 
 Page.getLayout = function getLayout(page) {
   return page
