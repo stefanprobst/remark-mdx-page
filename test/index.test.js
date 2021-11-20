@@ -54,7 +54,7 @@ it('adds page template', async () => {
   expect(stats.compilation.modules[0]._source._value).toMatchInlineSnapshot(`
     "/*@jsxRuntime automatic @jsxImportSource react*/
     import {Fragment as _Fragment, jsx as _jsx, jsxs as _jsxs} from \\"react/jsx-runtime\\";
-    const MDXLayout = function Layout(props) {
+    const MDXLayout = function Page(props) {
       return _jsx(\\"main\\", {
         children: props.children
       });
@@ -66,6 +66,9 @@ it('adds page template', async () => {
         }
       };
     }
+    MDXContent.getLayout = function getLayout(page) {
+      return page;
+    };
     function MDXContent(props = {}) {
       const _components = Object.assign({
         h1: \\"h1\\",

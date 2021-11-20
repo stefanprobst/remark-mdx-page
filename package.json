@@ -1,6 +1,6 @@
 {
   "name": "@stefanprobst/remark-mdx-page",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "main": "src/index.js",
   "type": "module",
   "types": "src/index.d.ts",
