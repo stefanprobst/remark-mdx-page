@@ -7,12 +7,15 @@ import { transformSync } from 'esbuild'
 const parser = Parser.extend(jsx())
 
 export default function attacher(options) {
-  if (options.pathname == null) return undefined
+  const template = options?.template
+  if (template == null) {
+    throw new Error('No page template provided.')
+  }
 
-  const fileContent = readFileSync(options.pathname, { encoding: 'utf-8' })
+  const fileContent = readFileSync(options.template, { encoding: 'utf-8' })
 
   const { code } = transformSync(fileContent, {
-    sourcefile: options.pathname,
+    sourcefile: options.template,
     jsx: 'preserve',
     minify: false,
     sourcemap: false,
@@ -21,55 +24,204 @@ export default function attacher(options) {
   })
 
   const estree = parser.parse(code, {
-    sourceFile: options.pathname,
+    sourceFile: options.template,
     sourceType: 'module',
     ecmaVersion: 'latest',
   })
 
-  const templateComponentNode = estree.body.find((node) => node.type === 'ExportDefaultDeclaration')
-  if (templateComponentNode == null) {
+  const imports = parser.parse((options.imports ?? []).join('\n'), {
+    sourceFile: options.template,
+    sourceType: 'module',
+    ecmaVersion: 'latest',
+  }).body
+
+  const props = parser.parse(`const props = ` + options.props ?? `{}`, {
+    sourceFile: options.template,
+    sourceType: 'module',
+    ecmaVersion: 'latest',
+  }).body[0].declarations[0].init
+
+  const mdxComponentName = 'MDXContent'
+  const wrapperComponentName = '__Page'
+
+  const pageTemplateComponentIndex = estree.body.findIndex(
+    (node) => node.type === 'ExportDefaultDeclaration',
+  )
+  const pageTemplateComponent = estree.body[pageTemplateComponentIndex]
+  if (pageTemplateComponentIndex === -1) {
     throw new Error('Page template does not have a default export.')
   }
-  let templateComponentName =
-    templateComponentNode.declaration.name || templateComponentNode.declaration.id.name
+  const declaration = pageTemplateComponent.declaration
 
-  for (const [index, node] of estree.body.entries()) {
-    if (node.type !== 'VariableDeclaration') continue
-    const declIndex = node.declarations.findIndex((d) => d.init.name === templateComponentName)
-    if (declIndex !== -1) {
-      templateComponentName = node.declarations[declIndex].id.name
-      if (node.declarations.length > 1) {
-        node.declarations.splice(declIndex)
-      } else {
-        estree.body.splice(index, 1)
-      }
-      break
-    }
+  let pageTemplateComponentIdentifier
+
+  if (declaration?.type === 'Identifier') {
+    pageTemplateComponentIdentifier = declaration
+    estree.body.splice(pageTemplateComponentIndex, 1)
+  } else if (declaration?.type === 'FunctionDeclaration') {
+    pageTemplateComponentIdentifier = declaration.id
+    estree.body.splice(pageTemplateComponentIndex, 1, declaration)
   }
 
-  const staticProperties = estree.body.filter((node) => {
-    if (node.type !== 'ExpressionStatement') return false
-    if (node.expression.type !== 'AssignmentExpression') return false
-    const left = node.expression.left
-    if (left.type !== 'MemberExpression') return false
-    if (left.object.name !== templateComponentName) return false
-    return true
+  estree.body.forEach((node) => {
+    if (node.type !== 'VariableDeclaration') return
+    node.declarations.forEach((declaration) => {
+      if (declaration.init.name === pageTemplateComponentIdentifier.name) {
+        declaration.init.name = wrapperComponentName
+      }
+    })
   })
-
-  const mdxContentComponentName = 'MDXContent'
 
   /**
-   * The mdx processor creates a `MDXContent` default export, so we need to move any static properties
-   * defined on the default export of the provided template component over to `MDXContent`.
+   * ```
+   * export default function __Page(props) {
+   *   // populated by options.props
+   *   const layoutProps = {}
+   *   const mdxProps = { ...layoutProps, ...props }
+   *   return (
+   *     <AboutPage {...props}>
+   *       <MDXContent {...mdxProps} />
+   *     </AboutPage>
+   *   )
+   * }
+   * ```
    */
-  staticProperties.forEach((node) => {
-    node.expression.left.object.name = mdxContentComponentName
-  })
+  const node = {
+    type: 'ExportDefaultDeclaration',
+    declaration: {
+      type: 'FunctionDeclaration',
+      id: {
+        type: 'Identifier',
+        name: wrapperComponentName,
+      },
+      expression: false,
+      generator: false,
+      async: false,
+      params: [
+        {
+          type: 'Identifier',
+          name: 'props',
+        },
+      ],
+      body: {
+        type: 'BlockStatement',
+        body: [
+          {
+            type: 'VariableDeclaration',
+            declarations: [
+              {
+                type: 'VariableDeclarator',
+                id: {
+                  type: 'Identifier',
+                  name: 'layoutProps',
+                },
+                init: props,
+              },
+            ],
+            kind: 'const',
+          },
+          {
+            type: 'VariableDeclaration',
+            declarations: [
+              {
+                type: 'VariableDeclarator',
+                id: {
+                  type: 'Identifier',
+                  name: 'mdxProps',
+                },
+                init: {
+                  type: 'ObjectExpression',
+                  properties: [
+                    {
+                      type: 'SpreadElement',
+                      argument: {
+                        type: 'Identifier',
+                        name: 'layoutProps',
+                      },
+                    },
+                    {
+                      type: 'SpreadElement',
+                      argument: {
+                        type: 'Identifier',
+                        name: 'props',
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+            kind: 'const',
+          },
+          {
+            type: 'ReturnStatement',
+            argument: {
+              type: 'JSXElement',
+              openingElement: {
+                type: 'JSXOpeningElement',
+                attributes: [
+                  {
+                    type: 'JSXSpreadAttribute',
+                    argument: {
+                      type: 'Identifier',
+                      name: 'props',
+                    },
+                  },
+                ],
+                name: {
+                  type: 'JSXIdentifier',
+                  name: pageTemplateComponentIdentifier.name,
+                },
+                selfClosing: false,
+              },
+              closingElement: {
+                type: 'JSXClosingElement',
+                name: {
+                  type: 'JSXIdentifier',
+                  name: pageTemplateComponentIdentifier.name,
+                },
+              },
+              children: [
+                {
+                  type: 'JSXElement',
+                  openingElement: {
+                    type: 'JSXOpeningElement',
+                    attributes: [
+                      {
+                        type: 'JSXSpreadAttribute',
+                        argument: {
+                          type: 'Identifier',
+                          name: 'mdxProps',
+                        },
+                      },
+                    ],
+                    name: {
+                      type: 'JSXIdentifier',
+                      name: mdxComponentName,
+                    },
+                    selfClosing: true,
+                  },
+                  closingElement: null,
+                  children: [],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  }
+
+  estree.body.push(...imports)
+  estree.body.push(node)
 
   return function transformer(tree) {
-    tree.children.push({
-      type: 'mdxjsEsm',
-      data: { estree },
-    })
+    const defaultExportIndex = tree.body.findIndex(
+      (node) => node.type === 'ExportDefaultDeclaration',
+    )
+    if (defaultExportIndex !== -1) {
+      tree.body.splice(defaultExportIndex, 1)
+    }
+
+    tree.body.push(...estree.body)
   }
 }
