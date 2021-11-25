@@ -122,7 +122,7 @@ it('adds page template', async () => {
       const mdxProps = { ...layoutProps,
         ...props
       };
-      return /*#__PURE__*/_jsx(TestPage, { ...props,
+      return /*#__PURE__*/_jsx(TestPage, { ...mdxProps,
         children: /*#__PURE__*/_jsx(MDXContent, { ...mdxProps
         })
       });

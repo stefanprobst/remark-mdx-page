@@ -163,7 +163,7 @@ export default function attacher(options) {
                     type: 'JSXSpreadAttribute',
                     argument: {
                       type: 'Identifier',
-                      name: 'props',
+                      name: 'mdxProps',
                     },
                   },
                 ],
